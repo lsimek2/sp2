@@ -3,7 +3,6 @@ library('MFDFA')
 
 df <- read.csv('train_logs.csv')
 # promijeniti? - id, activiy, down_event, up_event u factor?
-# n = dim(df)[1]
 df_scores <- read.csv('train_scores.csv')
 n = dim(df_scores)[1]  # broj sudionika
 
@@ -14,7 +13,7 @@ iki = (
   %>% slice(2:(dim(samo_prvi)[1]))
   %>% select(id,iki, t)
   %>% mutate(t=cumsum(t))
-)
+  )
 
 plot(1:length(iki$iki), iki$iki, 'l')
 
@@ -53,9 +52,3 @@ s = c(5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60)
 x = MFDFA(iki$iki, s=s, q=2)
 print(c(x$Hq, cor(s, x$Fq)^2))
       
-      
-      
-      
-
-
-
