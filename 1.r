@@ -70,3 +70,17 @@ single <- function(curr_id) {
   # print('pocinjem mfdfa')
   return (mfdfa(iki$iki))
 }
+
+ikiplot <- function(curr_id, pct=10) {
+  samo_prvi = df %>% filter(id == curr_id)
+  iki = (
+    samo_prvi 
+    %>% mutate(iki=c(-1,diff(down_time)), t=1)
+    %>% slice(2:(dim(samo_prvi)[1]))
+  )
+  
+  # print('pocinjem mfdfa')
+  plot(cumsum(iki$iki), type='l')
+  abline(v=quantile(samo_prvi$event_id, pct/100),col='red')
+  abline(v=quantile(samo_prvi$event_id, 1-2*pct/100), col='red')
+}

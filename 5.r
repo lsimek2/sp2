@@ -1,9 +1,4 @@
-# ovdje cemo pokusati s drugim paketom wol-fi/mutltifractal
-# sada pomocu lower-case mfdfa 
-# radimo "ozbiljno"
-# ovo je bez varijacija, basic
-
-# ideje: promjena s, izgladjivanje, maknuti kad iki < 2, gledati samo dio, xy67abc5678
+# ovdje cemo probati izgladjivanje uz micanje
 
 library('dplyr')
 library('MFDFA')
@@ -16,19 +11,33 @@ df$id <- as.factor(df$id)
 df_scores <- read.csv('train_scores.csv')
 n <- dim(df_scores)[1]  # broj sudionika
 
-iki <- df %>% mutate(iki=c(-1, diff(down_time))) %>% filter(event_id > 1) %>% select(id, iki) 
+## odrezati prvih i zadjih 10% evenata
+df <- (
+  df %>%
+    group_by(id) %>%
+    mutate(event_id_pct = 100*event_id/last(event_id)) %>%
+    filter((event_id_pct > 0), (event_id_pct < 75)) %>%
+    ungroup()
+)
+##
+
+## izgladjivanje geometrijskom sredinom
+
+##
+
+iki <- df %>% mutate(iki=c(-1, diff(down_time))) %>% filter(iki > 0) %>% select(id, iki) 
 
 qvec <- -5:5
 feature_names <- c() # za sve q dodajemo Hq, R2q, tauq, alfaq, jos Hmax, Hmin, alphamax, alphamin
 
 for (q in qvec) {
   feature_names <- c(feature_names,
-                    paste('H', q, sep='_'),
-                    paste('tau', q, sep='_'),
-                    paste('alpha', q, sep='_'),
-                    paste('R2', q, sep='_'),
-                    paste('f_alpha', q, sep='_')
-                  )
+                     paste('H', q, sep='_'),
+                     paste('tau', q, sep='_'),
+                     paste('alpha', q, sep='_'),
+                     paste('R2', q, sep='_'),
+                     paste('f_alpha', q, sep='_')
+  )
 }
 
 feature_names <- c(feature_names, 'Hmax', 'Hmin', 'alphamax', 'alphamin')
@@ -38,7 +47,7 @@ for (curr_id in df_scores$id) {
   print(paste(i, '/', n, ' id=', curr_id, sep=''))
   mfwrapper <- mfdfa(
     x = (iki %>% filter(id == curr_id))$iki,
-    scale=c(12, 17, 25, 32, 40, 50, 62, 75, 93, 109, 130),
+    scale=NA,
     q=qvec,
     m=1,
     overlap=FALSE
@@ -49,12 +58,12 @@ for (curr_id in df_scores$id) {
   # j = 1
   for (j in 1:length(qvec)) {
     feature_vals <- c(feature_vals,
-                     mfwrapper$Hq[j],
-                     mfwrapper$tq[j],
-                     mfwrapper$alpha[j],
-                     mfwrapper$R2[j],
-                     mfwrapper$f_alpha[j]
-                    )
+                      mfwrapper$Hq[j],
+                      mfwrapper$tq[j],
+                      mfwrapper$alpha[j],
+                      mfwrapper$R2[j],
+                      mfwrapper$f_alpha[j]
+    )
     # j = j + 1
   }
   
@@ -69,11 +78,11 @@ for (curr_id in df_scores$id) {
 df_scores <- df_scores %>% select(-c('alpha_5', 'f_alpha_5'))
 df_scores$dH = df_scores$Hmax - df_scores$Hmin
 df_scores$dalpha = df_scores$alphamax - df_scores$alphamin
-df_scores$total_words = (df %>% group_by(id) %>% mutate(total_words = last(word_count)) %>% filter(event_id == 1))$total_words
+df_scores$total_words = (df %>% group_by(id) %>% mutate(total_words = last(word_count)) %>% filter(event_id == first(event_id)))$total_words
 
 filename <-  gsub("[: ]", "-", date())
-filename <- paste('sfeatures', filename, '.csv', sep='')
-write.csv(df_scores, filename )
+filename <- paste('best_0_25_features', filename, '.csv', sep='')
+write.csv(df_scores, filename)
 
 # summary(lm(score~., data=df_scores %>% select(-id)))
 # r2 0.2157, adj. 0.1977 za puni model
